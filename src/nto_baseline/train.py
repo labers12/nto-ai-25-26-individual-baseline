@@ -6,27 +6,32 @@ import lightgbm as lgb
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import GroupKFold
 
-from . import config
+from . import config, constants
 from .data_processing import load_and_merge_data
 from .features import create_features
 
 
 def train() -> None:
-    """
-    Main function to run the training pipeline.
+    """Runs the full model training pipeline.
+
+    Loads and processes data, engineers features, then trains a LightGBM model
+    for each of the 5 folds using GroupKFold cross-validation. Trained models
+    are saved to the directory specified in the config.
     """
     # Load and process data
     merged_df, book_genres_df, _ = load_and_merge_data()
     featured_df = create_features(merged_df, book_genres_df)
 
     # Separate train and test sets
-    train_set = featured_df[featured_df["source"] == "train"].copy()
+    train_set = featured_df[featured_df[constants.COL_SOURCE] == constants.VAL_SOURCE_TRAIN].copy()
 
     # Define features (X) and target (y)
-    features = [col for col in train_set.columns if col not in ["source", config.TARGET, "rating_predict"]]
+    features = [
+        col for col in train_set.columns if col not in [constants.COL_SOURCE, config.TARGET, constants.COL_PREDICTION]
+    ]
     X = train_set[features]
     y = train_set[config.TARGET]
-    groups = train_set["user_id"]
+    groups = train_set[constants.COL_USER_ID]
 
     # Ensure model directory exists
     config.MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -46,7 +51,7 @@ def train() -> None:
 
         # Update fit params with early stopping callback for the current fold
         fit_params = config.LGB_FIT_PARAMS.copy()
-        fit_params["callbacks"] = [lgb.early_stopping(stopping_rounds=50, verbose=False)]
+        fit_params["callbacks"] = [lgb.early_stopping(stopping_rounds=config.EARLY_STOPPING_ROUNDS, verbose=False)]
 
         model.fit(
             X_train,
@@ -63,7 +68,7 @@ def train() -> None:
         print(f"Fold {fold + 1} Validation RMSE: {rmse:.4f}, MAE: {mae:.4f}")
 
         # Save the trained model
-        model_path = config.MODEL_DIR / f"lgb_fold_{fold}.txt"
+        model_path = config.MODEL_DIR / config.MODEL_FILENAME_PATTERN.format(fold=fold)
         model.booster_.save_model(str(model_path))
         print(f"Model for fold {fold + 1} saved to {model_path}")
 

@@ -4,6 +4,8 @@ Configuration file for the NTO ML competition baseline.
 
 from pathlib import Path
 
+from . import constants
+
 # --- DIRECTORIES ---
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = ROOT_DIR / "data"
@@ -12,21 +14,27 @@ OUTPUT_DIR = ROOT_DIR / "output"
 MODEL_DIR = OUTPUT_DIR / "models"
 SUBMISSION_DIR = OUTPUT_DIR / "submissions"
 
+
 # --- PARAMETERS ---
 N_SPLITS = 5
 RANDOM_STATE = 42
-TARGET = "rating"
+TARGET = constants.COL_TARGET  # Alias for consistency
+
+# --- TRAINING CONFIG ---
+EARLY_STOPPING_ROUNDS = 50
+MODEL_FILENAME_PATTERN = "lgb_fold_{fold}.txt"
+
 
 # --- FEATURES ---
 CAT_FEATURES = [
-    "user_id",
-    "book_id",
-    "gender",
-    "age",
-    "author_id",
-    "publication_year",
-    "language",
-    "publisher",
+    constants.COL_USER_ID,
+    constants.COL_BOOK_ID,
+    constants.COL_GENDER,
+    constants.COL_AGE,
+    constants.COL_AUTHOR_ID,
+    constants.COL_PUBLICATION_YEAR,
+    constants.COL_LANGUAGE,
+    constants.COL_PUBLISHER,
 ]
 
 # --- MODEL PARAMETERS ---
