@@ -1,0 +1,55 @@
+"""
+Configuration file for the NTO ML competition baseline.
+"""
+
+from pathlib import Path
+
+# --- DIRECTORIES ---
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+DATA_DIR = ROOT_DIR / "data"
+RAW_DATA_DIR = DATA_DIR / "raw"
+OUTPUT_DIR = ROOT_DIR / "output"
+MODEL_DIR = OUTPUT_DIR / "models"
+SUBMISSION_DIR = OUTPUT_DIR / "submissions"
+
+# --- PARAMETERS ---
+N_SPLITS = 5
+RANDOM_STATE = 42
+TARGET = "rating"
+
+# --- FEATURES ---
+CAT_FEATURES = [
+    "user_id",
+    "book_id",
+    "gender",
+    "age",
+    "author_id",
+    "publication_year",
+    "language",
+    "publisher",
+]
+
+# --- MODEL PARAMETERS ---
+LGB_PARAMS = {
+    "objective": "rmse",
+    "metric": "rmse",
+    "n_estimators": 2000,
+    "learning_rate": 0.01,
+    "feature_fraction": 0.8,
+    "bagging_fraction": 0.8,
+    "bagging_freq": 1,
+    "lambda_l1": 0.1,
+    "lambda_l2": 0.1,
+    "num_leaves": 31,
+    "verbose": -1,
+    "n_jobs": -1,
+    "seed": RANDOM_STATE,
+    "boosting_type": "gbdt",
+}
+
+# LightGBM's fit method allows for a list of callbacks, including early stopping.
+# To use it, we need to specify parameters for the early stopping callback.
+LGB_FIT_PARAMS = {
+    "eval_metric": "rmse",
+    "callbacks": [],  # Placeholder for early stopping callback
+}
