@@ -12,7 +12,9 @@ USER_DATA_FILENAME = "stage1_public_users.csv"
 BOOK_DATA_FILENAME = "stage1_public_books.csv"
 BOOK_GENRES_FILENAME = "stage1_public_book_genres.csv"
 GENRES_FILENAME = "stage1_public_genres.csv"
+BOOK_DESCRIPTIONS_FILENAME = "stage1_public_book_descriptions.csv"
 SUBMISSION_FILENAME = "submission.csv"
+TFIDF_VECTORIZER_FILENAME = "tfidf_vectorizer.pkl"
 
 # --- COLUMN NAMES ---
 # Main columns
@@ -39,6 +41,7 @@ COL_LANGUAGE = "language"
 COL_PUBLISHER = "publisher"
 COL_AVG_RATING = "avg_rating"
 COL_GENRE_ID = "genre_id"
+COL_DESCRIPTION = "description"
 
 
 # --- VALUES ---

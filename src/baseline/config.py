@@ -24,6 +24,12 @@ TARGET = constants.COL_TARGET  # Alias for consistency
 EARLY_STOPPING_ROUNDS = 50
 MODEL_FILENAME_PATTERN = "lgb_fold_{fold}.txt"
 
+# --- TF-IDF PARAMETERS ---
+TFIDF_MAX_FEATURES = 500
+TFIDF_MIN_DF = 2
+TFIDF_MAX_DF = 0.95
+TFIDF_NGRAM_RANGE = (1, 2)
+
 
 # --- FEATURES ---
 CAT_FEATURES = [

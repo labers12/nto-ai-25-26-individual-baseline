@@ -18,8 +18,8 @@ def predict() -> None:
     predictions from all models and saves the result to a submission file.
     """
     # Load and process data
-    merged_df, book_genres_df, _ = load_and_merge_data()
-    featured_df = create_features(merged_df, book_genres_df)
+    merged_df, book_genres_df, _, descriptions_df = load_and_merge_data()
+    featured_df = create_features(merged_df, book_genres_df, descriptions_df)
 
     # Separate test set for prediction
     test_set = featured_df[featured_df[constants.COL_SOURCE] == constants.VAL_SOURCE_TEST].copy()

@@ -2,7 +2,9 @@
 Feature engineering script.
 """
 
+import joblib
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 from . import config, constants
 
@@ -67,6 +69,82 @@ def add_genre_features(df: pd.DataFrame, book_genres_df: pd.DataFrame) -> pd.Dat
     return df.merge(genre_counts, on=constants.COL_BOOK_ID, how="left")
 
 
+def add_text_features(df: pd.DataFrame, train_df: pd.DataFrame, descriptions_df: pd.DataFrame) -> pd.DataFrame:
+    """Adds TF-IDF features from book descriptions.
+
+    Trains a TF-IDF vectorizer only on training data descriptions to avoid
+    data leakage. Applies the vectorizer to all books and merges the features.
+
+    Args:
+        df (pd.DataFrame): The main DataFrame to add features to.
+        train_df (pd.DataFrame): The training portion for fitting the vectorizer.
+        descriptions_df (pd.DataFrame): DataFrame with book descriptions.
+
+    Returns:
+        pd.DataFrame: The DataFrame with TF-IDF features added.
+    """
+    print("Adding text features (TF-IDF)...")
+
+    # Ensure model directory exists
+    config.MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    vectorizer_path = config.MODEL_DIR / constants.TFIDF_VECTORIZER_FILENAME
+
+    # Get unique books from train set
+    train_books = train_df[constants.COL_BOOK_ID].unique()
+
+    # Extract descriptions for training books only
+    train_descriptions = descriptions_df[descriptions_df[constants.COL_BOOK_ID].isin(train_books)].copy()
+    train_descriptions[constants.COL_DESCRIPTION] = train_descriptions[constants.COL_DESCRIPTION].fillna("")
+
+    # Check if vectorizer already exists (for prediction)
+    if vectorizer_path.exists():
+        print(f"Loading existing vectorizer from {vectorizer_path}")
+        vectorizer = joblib.load(vectorizer_path)
+    else:
+        # Fit vectorizer on training descriptions only
+        print("Fitting TF-IDF vectorizer on training descriptions...")
+        vectorizer = TfidfVectorizer(
+            max_features=config.TFIDF_MAX_FEATURES,
+            min_df=config.TFIDF_MIN_DF,
+            max_df=config.TFIDF_MAX_DF,
+            ngram_range=config.TFIDF_NGRAM_RANGE,
+        )
+        vectorizer.fit(train_descriptions[constants.COL_DESCRIPTION])
+        # Save vectorizer for use in prediction
+        joblib.dump(vectorizer, vectorizer_path)
+        print(f"Vectorizer saved to {vectorizer_path}")
+
+    # Transform all book descriptions
+    all_descriptions = descriptions_df[[constants.COL_BOOK_ID, constants.COL_DESCRIPTION]].copy()
+    all_descriptions[constants.COL_DESCRIPTION] = all_descriptions[constants.COL_DESCRIPTION].fillna("")
+
+    # Get descriptions in the same order as df[book_id]
+    # Create a mapping book_id -> description
+    description_map = dict(
+        zip(all_descriptions[constants.COL_BOOK_ID], all_descriptions[constants.COL_DESCRIPTION], strict=False)
+    )
+
+    # Get descriptions for books in df (in the same order)
+    df_descriptions = df[constants.COL_BOOK_ID].map(description_map).fillna("")
+
+    # Transform to TF-IDF features
+    tfidf_matrix = vectorizer.transform(df_descriptions)
+
+    # Convert sparse matrix to DataFrame
+    tfidf_feature_names = [f"tfidf_{i}" for i in range(tfidf_matrix.shape[1])]
+    tfidf_df = pd.DataFrame(
+        tfidf_matrix.toarray(),
+        columns=tfidf_feature_names,
+        index=df.index,
+    )
+
+    # Concatenate TF-IDF features with main DataFrame
+    df_with_tfidf = pd.concat([df.reset_index(drop=True), tfidf_df.reset_index(drop=True)], axis=1)
+
+    print(f"Added {len(tfidf_feature_names)} TF-IDF features.")
+    return df_with_tfidf
+
+
 def handle_missing_values(df: pd.DataFrame, train_df: pd.DataFrame) -> pd.DataFrame:
     """Fills missing values using a defined strategy.
 
@@ -104,25 +182,32 @@ def handle_missing_values(df: pd.DataFrame, train_df: pd.DataFrame) -> pd.DataFr
     # Fill genre counts with 0
     df[constants.F_BOOK_GENRES_COUNT] = df[constants.F_BOOK_GENRES_COUNT].fillna(0)
 
+    # Fill TF-IDF features with 0 (for books without descriptions)
+    tfidf_cols = [col for col in df.columns if col.startswith("tfidf_")]
+    for col in tfidf_cols:
+        df[col] = df[col].fillna(0.0)
+
     # Fill remaining categorical features with a special value
     for col in config.CAT_FEATURES:
-        if df[col].dtype.name in ("category", "object") and df[col].isna().any():
-            df[col] = df[col].astype(str).fillna(constants.MISSING_CAT_VALUE).astype("category")
-        elif pd.api.types.is_numeric_dtype(df[col].dtype) and df[col].isna().any():
-            df[col] = df[col].fillna(constants.MISSING_NUM_VALUE)
+        if col in df.columns:
+            if df[col].dtype.name in ("category", "object") and df[col].isna().any():
+                df[col] = df[col].astype(str).fillna(constants.MISSING_CAT_VALUE).astype("category")
+            elif pd.api.types.is_numeric_dtype(df[col].dtype) and df[col].isna().any():
+                df[col] = df[col].fillna(constants.MISSING_NUM_VALUE)
 
     return df
 
 
-def create_features(df: pd.DataFrame, book_genres_df: pd.DataFrame) -> pd.DataFrame:
+def create_features(df: pd.DataFrame, book_genres_df: pd.DataFrame, descriptions_df: pd.DataFrame) -> pd.DataFrame:
     """Runs the full feature engineering pipeline.
 
     This function orchestrates the calls to add aggregate features, genre
-    features, and handle missing values.
+    features, text features, and handle missing values.
 
     Args:
         df (pd.DataFrame): The merged DataFrame from `data_processing`.
         book_genres_df (pd.DataFrame): DataFrame mapping books to genres.
+        descriptions_df (pd.DataFrame): DataFrame with book descriptions.
 
     Returns:
         pd.DataFrame: The final DataFrame with all features engineered.
@@ -132,6 +217,7 @@ def create_features(df: pd.DataFrame, book_genres_df: pd.DataFrame) -> pd.DataFr
 
     df = add_aggregate_features(df, train_df)
     df = add_genre_features(df, book_genres_df)
+    df = add_text_features(df, train_df, descriptions_df)
     df = handle_missing_values(df, train_df)
 
     # Convert categorical columns to pandas 'category' dtype for LightGBM
