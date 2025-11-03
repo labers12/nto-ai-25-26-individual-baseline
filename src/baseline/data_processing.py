@@ -40,6 +40,7 @@ def load_and_merge_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.
     }
 
     # Load datasets
+    # CSV files use comma as separator (default pandas behavior)
     train_df = pd.read_csv(
         config.RAW_DATA_DIR / constants.TRAIN_FILENAME,
         dtype={

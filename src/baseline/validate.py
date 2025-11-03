@@ -22,6 +22,7 @@ def validate() -> None:
 
     try:
         # Load test data and submission file
+        # CSV files use comma as separator (default pandas behavior)
         test_df = pd.read_csv(config.RAW_DATA_DIR / constants.TEST_FILENAME)
         sub_df = pd.read_csv(config.SUBMISSION_DIR / constants.SUBMISSION_FILENAME)
 
