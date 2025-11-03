@@ -4,6 +4,11 @@ Configuration file for the NTO ML competition baseline.
 
 from pathlib import Path
 
+try:
+    import torch
+except ImportError:
+    torch = None
+
 from . import constants
 
 # --- DIRECTORIES ---
@@ -29,6 +34,13 @@ TFIDF_MAX_FEATURES = 500
 TFIDF_MIN_DF = 2
 TFIDF_MAX_DF = 0.95
 TFIDF_NGRAM_RANGE = (1, 2)
+
+# --- BERT PARAMETERS ---
+BERT_MODEL_NAME = constants.BERT_MODEL_NAME
+BERT_BATCH_SIZE = 32
+BERT_MAX_LENGTH = 512
+BERT_EMBEDDING_DIM = 768
+BERT_DEVICE = "cuda" if torch and torch.cuda.is_available() else "cpu"
 
 
 # --- FEATURES ---

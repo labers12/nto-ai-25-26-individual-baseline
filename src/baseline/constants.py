@@ -15,6 +15,8 @@ GENRES_FILENAME = "stage1_public_genres.csv"
 BOOK_DESCRIPTIONS_FILENAME = "stage1_public_book_descriptions.csv"
 SUBMISSION_FILENAME = "submission.csv"
 TFIDF_VECTORIZER_FILENAME = "tfidf_vectorizer.pkl"
+BERT_EMBEDDINGS_FILENAME = "bert_embeddings.pkl"
+BERT_MODEL_NAME = "DeepPavlov/rubert-base-cased"
 
 # --- COLUMN NAMES ---
 # Main columns
