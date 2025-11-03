@@ -37,7 +37,7 @@ TFIDF_NGRAM_RANGE = (1, 2)
 
 # --- BERT PARAMETERS ---
 BERT_MODEL_NAME = constants.BERT_MODEL_NAME
-BERT_BATCH_SIZE = 32
+BERT_BATCH_SIZE = 16
 BERT_MAX_LENGTH = 512
 BERT_EMBEDDING_DIM = 768
 BERT_DEVICE = "cuda" if torch and torch.cuda.is_available() else "cpu"

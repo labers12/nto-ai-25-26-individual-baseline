@@ -20,3 +20,5 @@ output/
 # Temporary files
 *.tmp
 *.log
+logs/
+.monitor_pid
