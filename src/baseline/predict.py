@@ -78,6 +78,7 @@ def predict() -> None:
     features = [f for f in features if f not in non_feature_object_cols]
 
     X_test = test_set_final[features]
+    X_test = X_test.astype('float32')
     print(f"Prediction features: {len(features)}")
 
     # Load trained model

@@ -130,6 +130,9 @@ def train() -> None:
     fit_params = config.LGB_FIT_PARAMS.copy()
     fit_params["callbacks"] = [lgb.early_stopping(stopping_rounds=config.EARLY_STOPPING_ROUNDS, verbose=False)]
 
+    X_train = X_train.astype('float32')
+    X_val = X_val.astype('float32')
+
     model.fit(
         X_train,
         y_train,
