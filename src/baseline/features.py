@@ -68,11 +68,8 @@ def add_read_rank(df: pd.DataFrame) -> pd.DataFrame:
     """
     TIMESTAMP_COL = constants.COL_TIMESTAMP
     
-    # 1. Сортировка по пользователю и дате (КРАЙНЕ ВАЖНО для cumcount)
     df.sort_values(['user_id', TIMESTAMP_COL], inplace=True)
     
-    # 2. Расчет порядкового номера
-    # cumcount() начинает с 0, поэтому + 1
     df['read_rank'] = df.groupby('user_id').cumcount() + 1
     
     return df
@@ -87,7 +84,6 @@ def add_user_ewm_rating(df: pd.DataFrame) -> pd.DataFrame:
         adjust=False
     ).mean().shift(1)
     
-    # Сброс MultiIndex: 
     df['user_ewm_rating'] = ewm_result.reset_index(level=0, drop=True)
     
     
@@ -352,6 +348,10 @@ def handle_missing_values(df: pd.DataFrame, train_df: pd.DataFrame) -> pd.DataFr
         df[constants.F_USER_RATINGS_COUNT] = df[constants.F_USER_RATINGS_COUNT].fillna(0)
     if constants.F_BOOK_RATINGS_COUNT in df.columns:
         df[constants.F_BOOK_RATINGS_COUNT] = df[constants.F_BOOK_RATINGS_COUNT].fillna(0)
+    if 'user_ewm_rating' in df.columns:
+        df['user_ewm_rating'] = df['user_ewm_rating'].fillna(global_mean)
+    if 'read_rank' in df.columns:
+        df['read_rank'] = df['read_rank'].fillna(0)
 
     # Fill missing avg_rating from book_data with global mean
     df[constants.COL_AVG_RATING] = df[constants.COL_AVG_RATING].fillna(global_mean)

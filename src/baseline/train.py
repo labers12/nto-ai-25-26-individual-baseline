@@ -78,22 +78,14 @@ def train() -> None:
             f"is not greater than max train timestamp ({max_train_timestamp})."
         )
     print("✅ Temporal split validation passed: all validation timestamps are after train timestamps")
+
     print("\nAdding clean feature: 'read_rank'...")
-    
-    # Ранг нужен только в train_split, но мы должны добавить его в оба
-    # набора, чтобы избежать ошибок с недостающими столбцами в val_split.
-    # Так как мы не используем val_split для расчета, это безопасно.
     train_split = add_read_rank(train_split)
     val_split = add_read_rank(val_split)
 
     print("Adding clean feature: 'user_ewm_rating'...")
     
-    # Расчет EWM для обучающего набора
     train_split = add_user_ewm_rating(train_split)
-    
-    # Расчет EWM для валидационного набора
-    # Важно: расчет происходит независимо, но поскольку данные уже отсортированы
-    # (благодаря read_rank), это безопасно.
     val_split = add_user_ewm_rating(val_split)
 
     # Compute aggregate features on train split only (to prevent data leakage)
