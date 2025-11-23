@@ -11,7 +11,7 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from . import config, constants
-from .features import add_aggregate_features, handle_missing_values, add_read_rank
+from .features import add_aggregate_features, handle_missing_values, add_read_rank, add_user_ewm_rating
 from .temporal_split import get_split_date_from_ratio, temporal_split_by_date
 
 
@@ -85,6 +85,16 @@ def train() -> None:
     # Так как мы не используем val_split для расчета, это безопасно.
     train_split = add_read_rank(train_split)
     val_split = add_read_rank(val_split)
+
+    print("Adding clean feature: 'user_ewm_rating'...")
+    
+    # Расчет EWM для обучающего набора
+    train_split = add_user_ewm_rating(train_split)
+    
+    # Расчет EWM для валидационного набора
+    # Важно: расчет происходит независимо, но поскольку данные уже отсортированы
+    # (благодаря read_rank), это безопасно.
+    val_split = add_user_ewm_rating(val_split)
 
     # Compute aggregate features on train split only (to prevent data leakage)
     print("\nComputing aggregate features on train split only...")

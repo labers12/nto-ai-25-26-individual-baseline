@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from . import config, constants
-from .features import add_aggregate_features, handle_missing_values, add_read_rank
+from .features import add_aggregate_features, handle_missing_values, add_read_rank, add_user_ewm_rating
 
 
 def predict() -> None:
@@ -48,6 +48,11 @@ def predict() -> None:
 
     test_set = add_read_rank(test_set)
     train_set = add_read_rank(train_set)
+
+    print("Adding required feature: 'user_ewm_rating'...")
+    
+    train_set = add_user_ewm_rating(train_set)
+    test_set = add_user_ewm_rating(test_set)
 
     # Compute aggregate features on ALL train data (to use for test predictions)
     print("\nComputing aggregate features on all train data...")
