@@ -11,7 +11,7 @@ import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from . import config, constants
-from .features import add_aggregate_features, handle_missing_values
+from .features import add_aggregate_features, handle_missing_values, add_read_rank
 from .temporal_split import get_split_date_from_ratio, temporal_split_by_date
 
 
@@ -78,6 +78,13 @@ def train() -> None:
             f"is not greater than max train timestamp ({max_train_timestamp})."
         )
     print("✅ Temporal split validation passed: all validation timestamps are after train timestamps")
+    print("\nAdding clean feature: 'read_rank'...")
+    
+    # Ранг нужен только в train_split, но мы должны добавить его в оба
+    # набора, чтобы избежать ошибок с недостающими столбцами в val_split.
+    # Так как мы не используем val_split для расчета, это безопасно.
+    train_split = add_read_rank(train_split)
+    val_split = add_read_rank(val_split)
 
     # Compute aggregate features on train split only (to prevent data leakage)
     print("\nComputing aggregate features on train split only...")

@@ -55,6 +55,42 @@ def add_aggregate_features(df: pd.DataFrame, train_df: pd.DataFrame) -> pd.DataF
     df = df.merge(book_agg, on=constants.COL_BOOK_ID, how="left")
     return df.merge(author_agg, on=constants.COL_AUTHOR_ID, how="left")
 
+def add_read_rank(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Добавляет признак 'read_rank' — порядковый номер книги, прочитанной пользователем.
+    Требует наличия столбца даты/времени (COL_TIMESTAMP).
+    
+    Args:
+        df: DataFrame (train_split или val_split).
+        
+    Returns:
+        Обновленный DataFrame.
+    """
+    user_col = constants.COL_USER_ID
+    ts_col = constants.COL_TIMESTAMP
+
+    # Defensive copy to avoid modifying caller's object in-place unexpectedly
+    df = df.copy()
+
+    if user_col not in df.columns:
+        raise KeyError(f"Required column '{user_col}' not found in DataFrame")
+
+    if ts_col in df.columns:
+        # Ensure datetime where possible
+        try:
+            df[ts_col] = pd.to_datetime(df[ts_col])
+        except Exception:
+            # If conversion fails, continue with original ordering
+            pass
+
+        # Sort by user and timestamp to produce a reading order
+        df = df.sort_values([user_col, ts_col])
+        df['read_rank'] = df.groupby(user_col).cumcount() + 1
+    else:
+        # No timestamp available: set default 0
+        df['read_rank'] = 0
+
+    return df
 
 def add_genre_features(df: pd.DataFrame, book_genres_df: pd.DataFrame) -> pd.DataFrame:
     """Calculates and adds the count of genres for each book.
@@ -298,10 +334,10 @@ def handle_missing_values(df: pd.DataFrame, train_df: pd.DataFrame) -> pd.DataFr
 
     # Calculate global mean from training data for filling
     global_mean = train_df[config.TARGET].mean()
-
-    # Fill age with the median
-    age_median = df[constants.COL_AGE].median()
-    df[constants.COL_AGE] = df[constants.COL_AGE].fillna(age_median)
+    # Fill age with the median (only if column exists)
+    if constants.COL_AGE in df.columns:
+        age_median = df[constants.COL_AGE].median()
+        df[constants.COL_AGE] = df[constants.COL_AGE].fillna(age_median)
 
     # Fill aggregate features for "cold start" users/items (only if they exist)
     if constants.F_USER_MEAN_RATING in df.columns:
@@ -315,12 +351,13 @@ def handle_missing_values(df: pd.DataFrame, train_df: pd.DataFrame) -> pd.DataFr
         df[constants.F_USER_RATINGS_COUNT] = df[constants.F_USER_RATINGS_COUNT].fillna(0)
     if constants.F_BOOK_RATINGS_COUNT in df.columns:
         df[constants.F_BOOK_RATINGS_COUNT] = df[constants.F_BOOK_RATINGS_COUNT].fillna(0)
+    # Fill missing avg_rating from book_data with global mean (if present)
+    if constants.COL_AVG_RATING in df.columns:
+        df[constants.COL_AVG_RATING] = df[constants.COL_AVG_RATING].fillna(global_mean)
 
-    # Fill missing avg_rating from book_data with global mean
-    df[constants.COL_AVG_RATING] = df[constants.COL_AVG_RATING].fillna(global_mean)
-
-    # Fill genre counts with 0
-    df[constants.F_BOOK_GENRES_COUNT] = df[constants.F_BOOK_GENRES_COUNT].fillna(0)
+    # Fill genre counts with 0 (if present)
+    if constants.F_BOOK_GENRES_COUNT in df.columns:
+        df[constants.F_BOOK_GENRES_COUNT] = df[constants.F_BOOK_GENRES_COUNT].fillna(0)
 
     # Fill TF-IDF features with 0 (for books without descriptions)
     tfidf_cols = [col for col in df.columns if col.startswith("tfidf_")]

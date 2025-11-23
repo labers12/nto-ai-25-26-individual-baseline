@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from . import config, constants
-from .features import add_aggregate_features, handle_missing_values
+from .features import add_aggregate_features, handle_missing_values, add_read_rank
 
 
 def predict() -> None:
@@ -39,13 +39,21 @@ def predict() -> None:
     # Separate train and test sets
     train_set = featured_df[featured_df[constants.COL_SOURCE] == constants.VAL_SOURCE_TRAIN].copy()
     test_set = featured_df[featured_df[constants.COL_SOURCE] == constants.VAL_SOURCE_TEST].copy()
+    
 
     print(f"Train set: {len(train_set):,} rows")
     print(f"Test set: {len(test_set):,} rows")
 
+    print("Adding required feature: 'read_rank'...")
+
+    test_set = add_read_rank(test_set)
+    train_set = add_read_rank(train_set)
+
     # Compute aggregate features on ALL train data (to use for test predictions)
     print("\nComputing aggregate features on all train data...")
     test_set_with_agg = add_aggregate_features(test_set.copy(), train_set)
+
+    print("Adding required feature: 'read_rank'...")
 
     # Handle missing values (use train_set for fill values)
     print("Handling missing values...")
@@ -84,8 +92,10 @@ def predict() -> None:
     # Clip predictions to be within the valid rating range [0, 10]
     clipped_preds = np.clip(test_preds, constants.PREDICTION_MIN_VALUE, constants.PREDICTION_MAX_VALUE)
 
-    # Create submission file
-    submission_df = test_set[[constants.COL_USER_ID, constants.COL_BOOK_ID]].copy()
+    # Create submission file from the final dataframe used for prediction
+    submission_df = test_set_final[[constants.COL_USER_ID, constants.COL_BOOK_ID]].copy()
+    # Reset index to ensure alignment with the predictions array
+    submission_df = submission_df.reset_index(drop=True)
     submission_df[constants.COL_PREDICTION] = clipped_preds
 
     # Ensure submission directory exists
