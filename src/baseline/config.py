@@ -76,7 +76,7 @@ LGB_PARAMS = {
     "bagging_freq": 1,
     "lambda_l1": 0.01,
     "lambda_l2": 0.01,
-    "num_leaves": 63,
+    "num_leaves": 127,
     "max_depth": 8,
     "min_child_samples": 10,
     "verbose": -1,
